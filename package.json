@@ -1,7 +1,7 @@
 {
-  "name": "recordy",
-  "version": "0.0.2",
-  "description": "Record your microphone (or any other input) and add effects to it!",
+  "name": "augmented-web",
+  "version": "0.0.1",
+  "description": "Easy augmented-reality for the web.",
   "main": "build/bundle.js",
   "scripts": {
     "start:dev": "webpack-dev-server",
@@ -27,13 +27,5 @@
     "webpack-merge": "*",
     "worker-loader": "*",
     "file-loader": "*"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/scriptify/Recordy.git"
-  },
-  "dependencies": {
-    "webaudio-chnl": "0.0.4",
-    "wrecorder": "github:scriptify/Wrecorder"
   }
 }

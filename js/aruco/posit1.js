@@ -36,13 +36,13 @@ POS.Posit = function(modelSize, focalLength){
   this.objectVectors = [];
   this.objectNormal = [];
   this.objectMatrix = [[],[],[]];
-  
+
   this.init();
 };
 
 POS.Posit.prototype.buildModel = function(modelSize){
   var half = modelSize / 2.0;
-  
+
   return [
     [-half,  half, 0.0],
     [ half,  half, 0.0],
@@ -53,12 +53,12 @@ POS.Posit.prototype.buildModel = function(modelSize){
 POS.Posit.prototype.init = function(){
   var np = this.objectPoints.length,
       vectors = [], n = [], len = 0.0, row = 2, i;
-  
+
   for (i = 0; i < np; ++ i){
     this.objectVectors[i] = [this.objectPoints[i][0] - this.objectPoints[0][0],
                              this.objectPoints[i][1] - this.objectPoints[0][1],
                              this.objectPoints[i][2] - this.objectPoints[0][2]];
-                             
+
     vectors[i] = [this.objectVectors[i][0],
                   this.objectVectors[i][1],
                   this.objectVectors[i][2]];
@@ -71,9 +71,9 @@ POS.Posit.prototype.init = function(){
            this.objectVectors[1][0] * this.objectVectors[row][2];
     n[2] = this.objectVectors[1][0] * this.objectVectors[row][1] -
            this.objectVectors[1][1] * this.objectVectors[row][0];
-    
+
     len = Math.sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-    
+
     ++ row;
   }
 
@@ -97,7 +97,7 @@ POS.Posit.prototype.pose = function(imagePoints){
   }else{
     error1 = {euclidean: -1.0, pixels: -1, maximum: -1.0};
   }
-  
+
   valid2 = this.isValid(posRotation2, posTranslation);
   if (valid2){
     error2 = this.iterate(imagePoints, posRotation2, posTranslation, rotation2, translation2);
@@ -147,13 +147,13 @@ POS.Posit.prototype.pos = function(imagePoints, rotation1, rotation2, translatio
 
   //Lambda and mu
   delta = (j0j0 - i0i0) * (j0j0 - i0i0) + 4.0 * (i0j0 * i0j0);
-  
+
   if (j0j0 - i0i0 >= 0.0){
     q = (j0j0 - i0i0 + Math.sqrt(delta) ) / 2.0;
   }else{
     q = (j0j0 - i0i0 - Math.sqrt(delta) ) / 2.0;
   }
-  
+
   if (q >= 0.0){
     lambda = Math.sqrt(q);
     if (0.0 === lambda){
@@ -175,14 +175,14 @@ POS.Posit.prototype.pos = function(imagePoints, rotation1, rotation2, translatio
     ivec[i] = i0[i] + lambda * this.objectNormal[i];
     jvec[i] = j0[i] + mu * this.objectNormal[i];
   }
-  
+
   scale = Math.sqrt(ivec[0] * ivec[0] + ivec[1] * ivec[1] + ivec[2] * ivec[2]);
-  
+
   for (i = 0; i < 3; ++ i){
     row1[i] = ivec[i] / scale;
     row2[i] = jvec[i] / scale;
   }
-  
+
   row3[0] = row1[1] * row2[2] - row1[2] * row2[1];
   row3[1] = row1[2] * row2[0] - row1[0] * row2[2];
   row3[2] = row1[0] * row2[1] - row1[1] * row2[0];
@@ -198,16 +198,16 @@ POS.Posit.prototype.pos = function(imagePoints, rotation1, rotation2, translatio
     ivec[i] = i0[i] - lambda * this.objectNormal[i];
     jvec[i] = j0[i] - mu * this.objectNormal[i];
   }
-  
+
   for (i = 0; i < 3; ++ i){
     row1[i] = ivec[i] / scale;
     row2[i] = jvec[i] / scale;
   }
-  
+
   row3[0] = row1[1] * row2[2] - row1[2] * row2[1];
   row3[1] = row1[2] * row2[0] - row1[0] * row2[2];
   row3[2] = row1[0] * row2[1] - row1[1] * row2[0];
-  
+
   for (i = 0; i < 3; ++ i){
     rotation2[0][i] = row1[i];
     rotation2[1][i] = row2[i];
@@ -249,7 +249,7 @@ POS.Posit.prototype.iterate = function(imagePoints, posRotation, posTranslation,
     oldSopImagePoints[i] = {x: imagePoints[i].x,
                             y: imagePoints[i].y};
   }
-  
+
   for (i = 0; i < 3; ++ i){
     for (j = 0; j < 3; ++ j){
       rotation[i][j] = posRotation[i][j];
@@ -267,7 +267,7 @@ POS.Posit.prototype.iterate = function(imagePoints, posRotation, posTranslation,
   }
 
   imageDifference = 0.0;
-  
+
   for (i = 0; i < np; ++ i){
     imageDifference += Math.abs(sopImagePoints[i].x - oldSopImagePoints[i].x);
     imageDifference += Math.abs(sopImagePoints[i].y - oldSopImagePoints[i].y);
@@ -279,14 +279,14 @@ POS.Posit.prototype.iterate = function(imagePoints, posRotation, posTranslation,
        rotation[i][1] * this.objectPoints[0][1] +
        rotation[i][2] * this.objectPoints[0][2]);
   }
-  
+
   error = error1 = this.error(imagePoints, rotation, translation1);
 
   //Convergence
   converged = (0.0 === error1.pixels) || (imageDifference < 0.01);
-  
+
   while( iteration ++ < 100 && !converged ){
-  
+
     for (i = 0; i < np; ++ i){
       oldSopImagePoints[i].x = sopImagePoints[i].x;
       oldSopImagePoints[i].y = sopImagePoints[i].y;
@@ -299,7 +299,7 @@ POS.Posit.prototype.iterate = function(imagePoints, posRotation, posTranslation,
         (rotation1[i][0] * this.objectPoints[0][0] +
          rotation1[i][1] * this.objectPoints[0][1] +
          rotation1[i][2] * this.objectPoints[0][2]);
-        
+
       translation2[i] = translation[i] -
         (rotation2[i][0] * this.objectPoints[0][0] +
          rotation2[i][1] * this.objectPoints[0][1] +
@@ -335,7 +335,7 @@ POS.Posit.prototype.iterate = function(imagePoints, posRotation, posTranslation,
         }
       }
     }
-    
+
     if ( (error2.euclidean < 0.0) && (error1.euclidean >= 0.0) ){
       error = error1;
       for (i = 0; i < 3; ++ i){
@@ -356,7 +356,7 @@ POS.Posit.prototype.iterate = function(imagePoints, posRotation, posTranslation,
 
     oldImageDifference = imageDifference;
     imageDifference = 0.0;
-    
+
     for (i = 0; i < np; ++ i){
       imageDifference += Math.abs(sopImagePoints[i].x - oldSopImagePoints[i].x);
       imageDifference += Math.abs(sopImagePoints[i].y - oldSopImagePoints[i].y);
@@ -366,7 +366,7 @@ POS.Posit.prototype.iterate = function(imagePoints, posRotation, posTranslation,
 
     converged = (0.0 === error.pixels) || (delta < 0.01);
   }
-  
+
   return error;
 };
 
@@ -379,14 +379,14 @@ POS.Posit.prototype.error = function(imagePoints, rotation, translation){
   if ( !this.isValid(rotation, translation) ){
     return {euclidean: -1.0, pixels: -1, maximum: -1.0};
   }
-  
+
   for (i = 0; i < np; ++ i){
     move[i] = [];
     for (j = 0; j < 3; ++ j){
       move[i][j] = translation[j];
     }
   }
-  
+
   for (i = 0; i < np; ++ i){
     for (j = 0; j < 3; ++ j){
       for (k = 0; k < 3; ++ k){
@@ -401,7 +401,7 @@ POS.Posit.prototype.error = function(imagePoints, rotation, translation){
       projection[i][j] = this.focalLength * move[i][j] / move[i][2];
     }
   }
-  
+
   for (i = 0; i < np; ++ i){
     errorvec[i] = [projection[i][0] - imagePoints[i].x,
                    projection[i][1] - imagePoints[i].y];
@@ -410,10 +410,10 @@ POS.Posit.prototype.error = function(imagePoints, rotation, translation){
   for (i = 0; i < np; ++ i){
     euclidean += Math.sqrt(errorvec[i][0] * errorvec[i][0] +
                            errorvec[i][1] * errorvec[i][1]);
-                       
+
     pixels += Math.abs( Math.round(projection[i][0]) - Math.round(imagePoints[i].x) ) +
               Math.abs( Math.round(projection[i][1]) - Math.round(imagePoints[i].y) );
-              
+
     if (Math.abs(errorvec[i][0]) > maximum){
       maximum = Math.abs(errorvec[i][0]);
     }
@@ -471,7 +471,7 @@ POS.pseudoInverse = function(a, n, b){
       s[i][j] = v[i][j] / w[j];
     }
   }
-  
+
   for (i = 0; i < 3; ++ i){
     for (j = 0; j < n; ++ j){
       b[i][j] = 0.0;
@@ -490,3 +490,6 @@ POS.Pose = function(error1, rotation1, translation1, error2, rotation2, translat
   this.alternativeRotation = rotation2;
   this.alternativeTranslation = translation2;
 };
+
+
+export default POS;

@@ -31,7 +31,7 @@ var SVD = SVD || {};
 SVD.svdcmp = function(a, m, n, w, v){
   var flag, i, its, j, jj, k, l, nm,
       anorm = 0.0, c, f, g = 0.0, h, s, scale = 0.0, x, y, z, rv1 = [];
-      
+
   //Householder reduction to bidiagonal form
   for (i = 0; i < n; ++ i){
     l = i + 1;
@@ -269,7 +269,7 @@ SVD.pythag = function(a, b){
     ct = bt / at;
     return at * Math.sqrt(1.0 + ct * ct);
   }
-    
+
   if (0.0 === bt){
     return 0.0;
   }
@@ -281,3 +281,5 @@ SVD.pythag = function(a, b){
 SVD.sign = function(a, b){
   return b >= 0.0? Math.abs(a): -Math.abs(a);
 };
+
+export default SVD;

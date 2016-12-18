@@ -38,7 +38,7 @@ POS.Posit = function(modelSize, focalLength){
 
 POS.Posit.prototype.buildModel = function(modelSize){
   var half = modelSize / 2.0;
-  
+
   return [
     new Vec3(-half,  half, 0.0),
     new Vec3( half,  half, 0.0),
@@ -48,7 +48,7 @@ POS.Posit.prototype.buildModel = function(modelSize){
 
 POS.Posit.prototype.init = function(){
   var d = new Vec3(), v = new Mat3(), u;
-  
+
   this.modelVectors = Mat3.fromRows(
       Vec3.sub(this.model[1], this.model[0]),
       Vec3.sub(this.model[2], this.model[0]),
@@ -60,7 +60,7 @@ POS.Posit.prototype.init = function(){
 
   this.modelPseudoInverse = Mat3.mult(
     Mat3.mult(v, Mat3.fromDiagonal( Vec3.inverse(d) ) ), Mat3.transpose(u) );
-  
+
   this.modelNormal = v.column( d.minIndex() );
 };
 
@@ -114,7 +114,7 @@ POS.Posit.prototype.pos = function(points, eps, rotation1, rotation2, translatio
   jnorm = j.normalize();
   k = Vec3.cross(i, j);
   rotation1.copy( Mat3.fromRows(i, j, k) );
-  
+
   scale = (inorm + jnorm) / 2.0;
   temp = Mat3.multVector(rotation1, this.model[0]);
   translation1.v = [
@@ -129,7 +129,7 @@ POS.Posit.prototype.pos = function(points, eps, rotation1, rotation2, translatio
   jnorm = j.normalize();
   k = Vec3.cross(i, j);
   rotation2.copy( Mat3.fromRows(i, j, k) );
-  
+
   scale = (inorm + jnorm) / 2.0;
   temp = Mat3.multVector(rotation2, this.model[0]);
   translation2.v = [
@@ -145,7 +145,7 @@ POS.Posit.prototype.iterate = function(points, rotation, translation){
       i = 0, eps, error, error1, error2;
 
   for (; i < 100; ++ i){
-    eps = Vec3.addScalar( Vec3.multScalar( 
+    eps = Vec3.addScalar( Vec3.multScalar(
       Mat3.multVector( this.modelVectors, rotation.row(2) ), 1.0 / translation.v[2]), 1.0);
 
     this.pos(points, eps, rotation1, rotation2, translation1, translation2);
@@ -179,9 +179,9 @@ POS.Posit.prototype.getError = function(points, rotation, translation){
       v3 = Vec3.add( Mat3.multVector(rotation, this.model[2]), translation),
       v4 = Vec3.add( Mat3.multVector(rotation, this.model[3]), translation),
       modeled, ia1, ia2, ia3, ia4, ma1, ma2, ma3, ma4;
-  
+
   v1 = v1.v; v2 = v2.v; v3 = v3.v; v4 = v4.v;
-  
+
   v1[0] *= this.focalLength / v1[2];
   v1[1] *= this.focalLength / v1[2];
   v2[0] *= this.focalLength / v2[2];
@@ -190,7 +190,7 @@ POS.Posit.prototype.getError = function(points, rotation, translation){
   v3[1] *= this.focalLength / v3[2];
   v4[0] *= this.focalLength / v4[2];
   v4[1] *= this.focalLength / v4[2];
-  
+
   modeled = [
     {x: v1[0], y: v1[1]},
     {x: v2[0], y: v2[1]},
@@ -217,8 +217,8 @@ POS.Posit.prototype.getError = function(points, rotation, translation){
 POS.Posit.prototype.angle = function(a, b, c){
   var x1 = b.x - a.x, y1 = b.y - a.y,
       x2 = c.x - a.x, y2 = c.y - a.y;
-  
-  return Math.acos( (x1 * x2 + y1 * y2) / 
+
+  return Math.acos( (x1 * x2 + y1 * y2) /
     (Math.sqrt(x1 * x1 + y1 * y1) * Math.sqrt(x2 * x2 + y2 * y2) ) ) * 180.0 / Math.PI;
 };
 
@@ -249,61 +249,61 @@ Vec3.prototype.copy = function(a){
 
 Vec3.add = function(a, b){
   var vector = new Vec3(), v = vector.v;
-  
+
   a = a.v; b = b.v;
 
   v[0] = a[0] + b[0];
   v[1] = a[1] + b[1];
   v[2] = a[2] + b[2];
-  
+
   return vector;
 };
 
 Vec3.sub = function(a, b){
   var vector = new Vec3(), v = vector.v;
-  
+
   a = a.v; b = b.v;
 
   v[0] = a[0] - b[0];
   v[1] = a[1] - b[1];
   v[2] = a[2] - b[2];
-  
+
   return vector;
 };
 
 Vec3.mult = function(a, b){
   var vector = new Vec3(), v = vector.v;
-  
+
   a = a.v; b = b.v;
 
   v[0] = a[0] * b[0];
   v[1] = a[1] * b[1];
   v[2] = a[2] * b[2];
-  
+
   return vector;
 };
 
 Vec3.addScalar = function(a, b){
   var vector = new Vec3(), v = vector.v;
-  
+
   a = a.v;
 
   v[0] = a[0] + b;
   v[1] = a[1] + b;
   v[2] = a[2] + b;
-  
+
   return vector;
 };
 
 Vec3.multScalar = function(a, b){
   var vector = new Vec3(), v = vector.v;
-  
+
   a = a.v;
 
   v[0] = a[0] * b;
   v[1] = a[1] * b;
   v[2] = a[2] * b;
-  
+
   return vector;
 };
 
@@ -325,7 +325,7 @@ Vec3.cross = function(a, b){
 Vec3.prototype.normalize = function(){
   var v = this.v,
       len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-      
+
   if (len > 0.0){
     v[0] /= len;
     v[1] /= len;
@@ -337,9 +337,9 @@ Vec3.prototype.normalize = function(){
 
 Vec3.inverse = function(a){
   var vector = new Vec3(), v = vector.v;
-  
+
   a = a.v;
-  
+
   if (a[0] !== 0.0){
     v[0] = 1.0 / a[0];
   }
@@ -349,7 +349,7 @@ Vec3.inverse = function(a){
   if (a[2] !== 0.0){
     v[2] = 1.0 / a[2];
   }
-  
+
   return vector;
 };
 
@@ -373,7 +373,7 @@ var Mat3 = function(){
 
 Mat3.clone = function(a){
   var matrix = new Mat3(), m = matrix.m;
-  
+
   a = a.m;
 
   m[0][0] = a[0][0];
@@ -385,7 +385,7 @@ Mat3.clone = function(a){
   m[2][0] = a[2][0];
   m[2][1] = a[2][1];
   m[2][2] = a[2][2];
-  
+
   return matrix;
 };
 
@@ -409,9 +409,9 @@ Mat3.prototype.copy = function(a){
 
 Mat3.fromRows = function(a, b, c){
   var matrix = new Mat3(), m = matrix.m;
-  
+
   a = a.v; b = b.v; c = c.v;
-  
+
   m[0][0] = a[0];
   m[0][1] = a[1];
   m[0][2] = a[2];
@@ -427,21 +427,21 @@ Mat3.fromRows = function(a, b, c){
 
 Mat3.fromDiagonal = function(a){
   var matrix = new Mat3(), m = matrix.m;
-  
+
   a = a.v;
-  
+
   m[0][0] = a[0];
   m[1][1] = a[1];
   m[2][2] = a[2];
-  
+
   return matrix;
 };
 
 Mat3.transpose = function(a){
   var matrix = new Mat3(), m = matrix.m;
-  
+
   a = a.m;
-  
+
   m[0][0] = a[0][0];
   m[0][1] = a[1][0];
   m[0][2] = a[2][0];
@@ -451,13 +451,13 @@ Mat3.transpose = function(a){
   m[2][0] = a[0][2];
   m[2][1] = a[1][2];
   m[2][2] = a[2][2];
-            
+
   return matrix;
 };
 
 Mat3.mult = function(a, b){
   var matrix = new Mat3(), m = matrix.m;
-  
+
   a = a.m; b = b.m;
 
   m[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0];
@@ -475,7 +475,7 @@ Mat3.mult = function(a, b){
 
 Mat3.multVector = function(m, a){
   m = m.m; a = a.v;
-  
+
   return new Vec3(
     m[0][0] * a[0] + m[0][1] * a[1] + m[0][2] * a[2],
     m[1][0] * a[0] + m[1][1] * a[1] + m[1][2] * a[2],
@@ -484,12 +484,14 @@ Mat3.multVector = function(m, a){
 
 Mat3.prototype.column = function(index){
   var m = this.m;
-  
+
   return new Vec3( m[0][index], m[1][index], m[2][index] );
 };
 
 Mat3.prototype.row = function(index){
   var m = this.m;
-  
+
   return new Vec3( m[index][0], m[index][1], m[index][2] );
 };
+
+export default POS;
