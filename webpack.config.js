@@ -1,6 +1,7 @@
 var path = require('path'),
 webpack = require('webpack'), // Da bundling modules!
 NpmInstallPlugin = require('npm-install-webpack-plugin'), // Install client dependencies automatically!
+cssnext = require('postcss-cssnext'),
 merge = require('webpack-merge'); // Merge together configurations!
 
 const PATHS = {
@@ -20,8 +21,8 @@ const COMMON_CONFIGURATION = {
   output: {
     path: PATHS.build,
     filename: 'bundle.js',
-    libraryTarget: 'umd',
-    library: 'Recordy'
+    /*libraryTarget: 'umd',
+    library: 'Recordy'*/
   },
   module: {
     loaders: [
@@ -29,9 +30,25 @@ const COMMON_CONFIGURATION = {
        test: /\.js$/,
        loaders: ['babel?cacheDirectory'],
        include: PATHS.js
-      }
+     },
+     {
+      test: /\.(jpe?g|png|gif|svg|mp4)$/i,
+      loaders: [
+          'file?hash=sha512&digest=hex&name=[hash].[ext]',
+          'image-webpack?bypassOnDebug&optimizationLevel=7&interlaced=false'
+      ],
+      include: PATHS.js
+    },
+    {
+      test: /\.css$/,
+      loaders: ['style', 'css', 'postcss'],
+      include: PATHS.js
+    }
     ]
-  }
+  },
+  postcss: function() {
+    return [ cssnext ];
+  },
 };
 
 switch(TARGET) {
@@ -45,7 +62,9 @@ switch(TARGET) {
         hot: true,
         inline: true,
         progress: true,
-        stats: 'errors-only'
+        stats: 'errors-only',
+        host: '0.0.0.0',
+        https: true
       },
       plugins: [
         new webpack.HotModuleReplacementPlugin(),

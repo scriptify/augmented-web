@@ -267,3 +267,5 @@ AR.Detector.prototype.rotate2 = function(src, rotation){
 
   return dst;
 };
+
+export default AR;
