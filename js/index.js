@@ -1,73 +1,70 @@
 import AR from './aruco/aruco';
 import POS from './aruco/posit1';
 import THREELib from 'three-js';
-import exampleVideo from './video.mp4';
+
+import { getDevices, getVideo, videoReady } from './webcam';
 
 import './style.css';
 
 const THREE = THREELib();
 
-function getDevices(type = 'videoinput') {
-  return new Promise((resolve, reject) => {
-    navigator.mediaDevices.enumerateDevices()
-      .then(devices => {
-        resolve( devices.filter( d => d.kind === type ) );
-      })
-      .catch(reject)
-  });
-}
-
-async function getVideo(deviceId) {
-  return navigator.mediaDevices.getUserMedia({ video: { optional: [{ sourceId: deviceId }] }, audio: false })
-}
-
-
 /* AR setup */
 
-async function setupAR({ container, height, width, detectedMarkers = () => {} }) {
-
+async function videoSetup({ height, width, container, cameraIndex = null }) {
   const cameras = await getDevices();
-  const CAMERA_NUM = cameras.length - 1;
+  const CAMERA_NUM = cameraIndex || cameras.length - 1;
 
   const videoStream = await getVideo( cameras[CAMERA_NUM].deviceId );
   const video = document.createElement('video');
   const canvas = document.createElement('canvas');
 
-  let videoReady = false;
   video.srcObject = videoStream;
   video.play();
 
-  video.addEventListener('canplay', e => {
-    videoReady = true;
+  const readyEvent = await videoReady(video);
 
-    let finalH = height;
-    let finalW = width;
+  canvas.height = height;
+  canvas.width = width;
+  video.height = height;
+  video.width = width;
 
-    let ratioHeight = (video.videoHeight / video.videoWidth) || 1;
-    let ratioWidth = (video.videoWidth / video.videoHeight) || 1;
+  let finalH = height;
+  let finalW = width;
 
-    ratioHeight = (ratioHeight === 0) ? 1 : ratioHeight;
-    ratioWidth = (ratioWidth === 0) ? 1 : ratioWidth;
+  let ratioHeight = (container.offsetHeight / video.videoHeight);
+  let ratioWidth = (container.offsetWidth / video.videoWidth);
 
 
 
-    if(height === FULL && width === AUTO) {
+  if(height === AUTO && width === AUTO) {
+    if(ratioHeight > ratioWidth) {
+      const newW = video.videoWidth * ratioHeight;
       finalH = container.offsetHeight;
-      finalW = container.offsetHeight * ratioHeight;
-      //video.style.marginLeft = (-(window.innerWidth / 2 - video.innerWidth / 2)) + 'px';
-    } else if(width === FULL && height === AUTO) {
+      finalW = newW;
+    } else {
+      const newH = video.videoHeight * ratioWidth;
+      finalH = newH;
       finalW = container.offsetWidth;
-      finalH = container.offsetWidth * ratioWidth;
     }
+  }
 
-    canvas.width = finalW;
-    canvas.height = finalH;
-    video.height = finalH;
-    video.width = finalW;
+  canvas.width = finalW;
+  canvas.height = finalH;
+  video.height = finalH;
+  video.width = finalW;
 
-  });
+  return {
+    canvas,
+    video
+  };
+}
 
-  const modelSize = 100;
+export async function setupAR({ container, height, width, detectedMarkers = () => {} }) {
+
+
+  const { canvas, video } = await videoSetup({ height, width, container });
+
+  const modelSize = 35;
 
   let imageData;
   let markers;
@@ -78,42 +75,70 @@ async function setupAR({ container, height, width, detectedMarkers = () => {} })
   const { renderer, sceneVideo, cameraVideo } = createRenderer(canvas, container);
   const texture = await createScene(sceneVideo, video);
 
-  const videos = [];
-  const videosAdded = [];
+  let videoCache = [];
+  let videos = [];
+  let videosAdded = [];
+
+  let customModels = [];
 
   const tick = () => {
     requestAnimationFrame(tick);
 
-    if(videoReady) {
-      imageData = snapshot(canvas, video);
-      markers = detector.detect(imageData);
+    imageData = snapshot(canvas, video);
+    markers = detector.detect(imageData);
 
-      if(markers.length > 0) {
-        detectedMarkers(markers.map(m => {
-          return {
-            id: m.id,
-            setVideo: url => {
-              if(videosAdded.filter( v => v === m.id ).length === 0) {
+    if(markers.length > 0) {
 
-                videosAdded.push(m.id);
+      detectedMarkers(markers.map(m => {
+        return {
+          id: m.id,
+          setVideo: url => {
+            if(videosAdded.filter( v => v === m.id ).length === 0) {
 
-                createVideo(url, canvas)
-                  .then(three => {
-                    videos.push({
-                      id: m.id,
-                      three
-                    });
+              videosAdded.push(m.id);
+
+              createVideo(url, canvas, videoCache)
+                .then(three => {
+                  videos.push({
+                    id: m.id,
+                    three
                   });
+                });
 
+              }
+            },
+            setModel: customModel => {
+              if(customModels.filter(cm => cm.id === customModel.id).length === 0) {
+                customModels.push({
+                  id: m.id,
+                  three: createCustomModel(customModel, canvas)
+                });
               }
             }
           };
         }));
       }
 
-      updateScenes(markers, canvas, posit, texture, modelSize, videos);
-      render(renderer, sceneVideo, cameraVideo, videos);
-    }
+      // Delete videos whose markers aren't visible anymore
+      videos.forEach(v => {
+        const filtered = markers.filter(m => m.id === v.id);
+        if(filtered.length === 0) {
+          videos = videos.filter(video => video.id !== v.id);
+          videosAdded = videosAdded.filter(videoId => videoId !== v.id);
+        }
+      });
+
+      // Delete models whose markers aren't visible anymore
+      customModels.forEach(cm => {
+        const filtered = markers.filter(m => m.id === cm.id);
+        if(filtered.length === 0) {
+          customModels = customModels.filter(c => c.id !== cm.id);
+        }
+      });
+
+
+      updateScenes(markers, canvas, posit, texture, modelSize, videos, customModels);
+      render(renderer, sceneVideo, cameraVideo, videos, customModels);
   };
 
   requestAnimationFrame(tick);
@@ -136,7 +161,7 @@ function createTexture(video) {
   return object;
 }
 
-function render(renderer, sceneVideo, cameraVideo, videos) {
+function render(renderer, sceneVideo, cameraVideo, videos, customModels) {
   renderer.autoClear = false;
   renderer.clear();
 
@@ -146,9 +171,13 @@ function render(renderer, sceneVideo, cameraVideo, videos) {
     renderer.render(scene, camera);
   });
 
+  customModels.forEach(({ three: { scene, camera } }) => {
+    renderer.render(scene, camera);
+  });
+
 }
 
-function updateScenes(markers, canvas, posit, texture, modelSize, videos) {
+function updateScenes(markers, canvas, posit, texture, modelSize, videos, models) {
   var corners, corner, pose, i;
 
   markers.forEach(({ id, corners }) => {
@@ -164,6 +193,11 @@ function updateScenes(markers, canvas, posit, texture, modelSize, videos) {
     if(video) {
       updateObject(video.three.model, pose.bestRotation, pose.bestTranslation, modelSize);
       video.three.model.children[0].material.map.needsUpdate = true;
+    }
+
+    const model = models.filter(m => m.id === id)[0];
+    if(model) {
+      updateObject(model.three.model, pose.bestRotation, pose.bestTranslation, modelSize);
     }
   });
 
@@ -219,25 +253,37 @@ async function createScene(sceneVideo, video) {
   return texture;
 }
 
-function createVideo(videoUrl, canvas) {
+function createCustomModel(model, canvas) {
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
+  scene.add(camera);
+  scene.add(model);
+
+  return { scene, camera, model };
+}
+
+function createVideo(videoUrl, canvas, videoCache) {
 
   return new Promise((resolve, reject) => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
     scene.add(camera);
 
-    const video = document.createElement('video');
-    document.querySelector('#app').appendChild(video);
-    video.loop = true;
-    video.autoplay = true;
-    video.muted = true;
-    video.style.visibility = 'hidden';
+    const getVideoElement = () => {
+      const video = document.createElement('video');
+      document.querySelector('#app').appendChild(video);
+      video.loop = true;
+      video.autoplay = true;
+      video.muted = true;
+      video.style.visibility = 'hidden';
+      return video;
+    };
 
-    video.addEventListener('canplay', e => {
-
+    const return3DObject = video => {
       var texture = new THREE.Texture(video),
           object = new THREE.Object3D(),
-          geometry = new THREE.PlaneGeometry(1, 1, 0),
+          geometry = new THREE.PlaneGeometry(2.5, 2.5, 0),
           material = new THREE.MeshBasicMaterial( {map: texture, depthTest: false, depthWrite: false} ),
           mesh = new THREE.Mesh(geometry, material);
 
@@ -246,31 +292,61 @@ function createVideo(videoUrl, canvas) {
       object.add(mesh);
 
       scene.add(object);
-
-
-
       resolve({ scene, camera, model: object });
-    });
+    };
 
-    video.src = videoUrl;
+    let video;
+    const filtered = videoCache.filter(v => v.url === videoUrl);
+    if(filtered.length === 0) {
+      video = getVideoElement();
+      videoCache.push({
+        url: videoUrl,
+        videoObject: video
+      });
+
+      video.addEventListener('canplay', e => {
+        return3DObject(video);
+      });
+
+      video.src = videoUrl;
+    } else {
+      const { videoObject } = filtered[0];
+      return3DObject(videoObject);
+    }
+
 
 
   });
 
 }
 
-const FULL = 'full';
-const AUTO = 'auto';
+export const AUTO = 'auto';
 
-window.addEventListener('load', e => {
+const fetched = [];
+
+/*window.addEventListener('load', e => {
+
   setupAR({
     container: document.querySelector('#app'),
-    height: FULL,
+    height: AUTO,
     width: AUTO,
     detectedMarkers: markers => {
-      markers.forEach(({ setVideo, id }) => {
-        setVideo(exampleVideo);
+      markers.forEach(({ setVideo, setModel, id }) => {
+        //setVideo(exampleVideo);
+        //setModel(object);
+        const videoF = fetched.filter(v => v.id === id);
+        if( videoF.length === 0 ) {
+          fetch(`getById/${ id }`)
+            .then(res => res.json())
+            .then(obj => {
+              fetched.push(obj);
+            })
+        } else {
+          const videoObj = videoF[0];
+          setVideo(videoObj.file);
+        }
       });
     }
   });
-});
+
+});*/
