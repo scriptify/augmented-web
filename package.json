@@ -1,6 +1,6 @@
 {
   "name": "augmented-web",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Easy augmented-reality for the web.",
   "main": "build/bundle.js",
   "scripts": {
