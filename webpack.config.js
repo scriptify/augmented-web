@@ -21,8 +21,8 @@ const COMMON_CONFIGURATION = {
   output: {
     path: PATHS.build,
     filename: 'bundle.js',
-    /*libraryTarget: 'umd',
-    library: 'Recordy'*/
+    libraryTarget: 'umd',
+    library: 'augmented-web'
   },
   module: {
     loaders: [
