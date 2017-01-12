@@ -61,10 +61,15 @@ async function videoSetup({ height, width, container, cameraIndex = null }) {
 
 export async function setupAR({ container, height, width, detectedMarkers = () => {}, onError = () => {} }) {
 
+  let canvas, video;
+
   try {
-    const { canvas, video } = await videoSetup({ height, width, container });
+    const { canvas: c, video: v } = await videoSetup({ height, width, container });
+    canvas = c;
+    video = v;
   } catch(e) {
     onError(`Couldn't gain webcam access`);
+    return;
   }
 
 
@@ -328,3 +333,21 @@ function createVideo(videoUrl, canvas, videoCache) {
 }
 
 export const AUTO = 'auto';
+
+
+
+
+
+/*window.addEventListener('load', e => {
+  setupAR({
+    container: document.querySelector('#app'),
+    height: AUTO,
+    width: AUTO,
+    detectedMarkers: markers => {
+      markers.forEach(({ setVideo, setModel, id, getVideoObject }) => {
+        //setVideo(exampleVideo);
+      });
+    },
+    onError: e => console.error(e)
+  });
+});*/
