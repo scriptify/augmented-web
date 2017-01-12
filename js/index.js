@@ -59,10 +59,14 @@ async function videoSetup({ height, width, container, cameraIndex = null }) {
   };
 }
 
-export async function setupAR({ container, height, width, detectedMarkers = () => {} }) {
+export async function setupAR({ container, height, width, detectedMarkers = () => {}, onError = () => {} }) {
 
+  try {
+    const { canvas, video } = await videoSetup({ height, width, container });
+  } catch(e) {
+    onError(`Couldn't gain webcam access`);
+  }
 
-  const { canvas, video } = await videoSetup({ height, width, container });
 
   const modelSize = 35;
 
@@ -92,6 +96,11 @@ export async function setupAR({ container, height, width, detectedMarkers = () =
       detectedMarkers(markers.map(m => {
         return {
           id: m.id,
+          getVideoObject: url => {
+            const filtered = videoCache.filter(v => v.url === url)[0];
+
+            return filtered;
+          },
           setVideo: url => {
             if(videosAdded.filter( v => v === m.id ).length === 0) {
 
@@ -274,8 +283,6 @@ function createVideo(videoUrl, canvas, videoCache) {
       const video = document.createElement('video');
       document.querySelector('#app').appendChild(video);
       video.loop = true;
-      video.autoplay = true;
-      video.muted = true;
       video.style.visibility = 'hidden';
       return video;
     };
@@ -321,32 +328,3 @@ function createVideo(videoUrl, canvas, videoCache) {
 }
 
 export const AUTO = 'auto';
-
-const fetched = [];
-
-/*window.addEventListener('load', e => {
-
-  setupAR({
-    container: document.querySelector('#app'),
-    height: AUTO,
-    width: AUTO,
-    detectedMarkers: markers => {
-      markers.forEach(({ setVideo, setModel, id }) => {
-        //setVideo(exampleVideo);
-        //setModel(object);
-        const videoF = fetched.filter(v => v.id === id);
-        if( videoF.length === 0 ) {
-          fetch(`getById/${ id }`)
-            .then(res => res.json())
-            .then(obj => {
-              fetched.push(obj);
-            })
-        } else {
-          const videoObj = videoF[0];
-          setVideo(videoObj.file);
-        }
-      });
-    }
-  });
-
-});*/

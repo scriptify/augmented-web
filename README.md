@@ -43,3 +43,6 @@ This function is always called, when aruco-markers were detected. Markers is an 
     setModel: Function
   }
 ```
+
+Call the 'setVideo'-function with a valid video url as the first parameter to set an augmented-reality video.
+Call the 'setModel'-function with a valid three-js mesh as the first parameter to set an augmented-reality program.
