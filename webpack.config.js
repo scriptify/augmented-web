@@ -1,59 +1,105 @@
-var path = require('path'),
+
+const path = require('path'),
 webpack = require('webpack'), // Da bundling modules!
 NpmInstallPlugin = require('npm-install-webpack-plugin'), // Install client dependencies automatically!
-cssnext = require('postcss-cssnext'),
-merge = require('webpack-merge'); // Merge together configurations!
+merge = require('webpack-merge'), // Merge together configurations!
+HtmlWebpackExcludeAssetsPlugin = require('html-webpack-exclude-assets-plugin'),
+HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const PATHS = {
-  js: path.join(__dirname, './js/'),
-  build: path.join(__dirname, './build')
+  src: path.join(__dirname, 'src'),
+  build: path.join(__dirname, 'dist')
 };
+
+const moduleName = 'augmented-web';
 
 const TARGET = process.env.npm_lifecycle_event;
 
 const COMMON_CONFIGURATION = {
   entry: {
-    app: PATHS.js
+    [moduleName]: path.join(PATHS.src, 'index.js'),
+    [moduleName + '.min']: path.join(PATHS.src, 'index.js')
   },
   resolve: {
-    extensions: ['', '.js'], // Resolve these extensions
+    extensions: ['.js'], // Resolve these extensions
   },
   output: {
     path: PATHS.build,
-    filename: 'bundle.js',
+    filename: '[name].js',
     libraryTarget: 'umd',
-    library: 'augmented-web'
+    library: moduleName,
+    umdNamedDefine: true
   },
   module: {
-    loaders: [
+    rules: [
       {
-       test: /\.js$/,
-       loaders: ['babel?cacheDirectory'],
-       include: PATHS.js
-     },
-     {
-      test: /\.(jpe?g|png|gif|svg|mp4)$/i,
-      loaders: [
-          'file?hash=sha512&digest=hex&name=[hash].[ext]',
-          'image-webpack?bypassOnDebug&optimizationLevel=7&interlaced=false'
-      ],
-      include: PATHS.js
-    },
-    {
-      test: /\.css$/,
-      loaders: ['style', 'css', 'postcss'],
-      include: PATHS.js
-    }
+        test: /\.js$/,
+        loader: 'babel-loader',
+        include: PATHS.src,
+        options: {
+          cacheDirectory: true
+        }
+      },
+      {
+        test: /\.(jpe?g|png|gif|svg|wav|mp3)$/i,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              hash: 'sha512',
+              digest: 'hex',
+              name: '[hash].[ext]'
+            }
+          },
+          {
+            loader: 'image-webpack-loader',
+            options: {
+              bypassOnDebug: true
+            }
+          }
+        ],
+        include: PATHS.src
+      },
+      {
+        test: /\.css$/,
+        include: PATHS.src,
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader'
+          }
+        ]
+      }
     ]
   },
-  postcss: function() {
-    return [ cssnext ];
-  },
+  plugins: [
+    new webpack.DefinePlugin({
+      ENVIRONMENT: JSON.stringify(TARGET === 'start:dev' ? 'development' : 'production')
+    }),
+    new webpack.LoaderOptionsPlugin({
+      test: /\.(jpe?g|png|gif|svg)$/i,
+      options: {
+        imageWebpackLoader: {
+          gifsicle: {
+            interlaced: false
+          },
+          optipng: {
+            optimizationLevel: 7
+          }
+        }
+      }
+    }),
+    new HtmlWebpackPlugin({
+      excludeAssets: [/\.min\.js$/],
+      title: moduleName
+    }),
+    new HtmlWebpackExcludeAssetsPlugin()
+  ]
 };
 
 switch(TARGET) {
-  // Which procedure was started?
-  default:
   case 'start:dev': {
     module.exports = merge(COMMON_CONFIGURATION, {
       devServer: {
@@ -61,16 +107,10 @@ switch(TARGET) {
         historyApiFallback: true,
         hot: true,
         inline: true,
-        progress: true,
-        stats: 'errors-only',
-        host: '0.0.0.0',
-        https: true
+        stats: 'errors-only'
       },
       plugins: [
-        new webpack.HotModuleReplacementPlugin(),
-        new NpmInstallPlugin({
-          save: true
-        })
+        new webpack.HotModuleReplacementPlugin()
       ],
       devtool: 'eval-source-map'
     });
@@ -85,9 +125,8 @@ switch(TARGET) {
           }
         }),
         new webpack.optimize.UglifyJsPlugin({
-          compress: { warnings: false }
-        }),
-        new webpack.optimize.DedupePlugin()
+          include: /\.min\.js$/
+        })
       ]
     });
   }
