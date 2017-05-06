@@ -1,17 +1,22 @@
 import AR from './aruco/aruco';
 import POS from './aruco/posit1';
-import THREELib from 'three-js';
+import * as THREE from 'three';
 
 import { getDevices, getVideo, videoReady } from './webcam';
 
 import './style.css';
 
-const THREE = THREELib();
+// const THREE = THREELib();
 
 /* AR setup */
 
 async function videoSetup({ height, width, container, cameraIndex = null }) {
   const cameras = await getDevices();
+
+  if(cameras.length === 0) {
+    throw new Error(`This device has no cameras.`);
+  }
+
   const CAMERA_NUM = cameraIndex || cameras.length - 1;
 
   const videoStream = await getVideo( cameras[CAMERA_NUM].deviceId );
@@ -121,11 +126,13 @@ export async function setupAR({ container, height, width, detectedMarkers = () =
 
               }
             },
-            setModel: customModel => {
+            setModel: (customModel, rotate, scaling) => {
               if(customModels.filter(cm => cm.id === customModel.id).length === 0) {
                 customModels.push({
                   id: m.id,
-                  three: createCustomModel(customModel, canvas)
+                  three: createCustomModel(customModel, canvas),
+                  rotate,
+                  scaling
                 });
               }
             }
@@ -211,7 +218,7 @@ function updateScenes(markers, canvas, posit, texture, modelSize, videos, models
 
     const model = models.filter(m => m.id === id)[0];
     if(model) {
-      updateObject(model.three.model, pose.bestRotation, pose.bestTranslation, modelSize);
+      updateObject(model, pose.bestRotation, pose.bestTranslation, modelSize);
     }
   });
 
@@ -219,14 +226,15 @@ function updateScenes(markers, canvas, posit, texture, modelSize, videos, models
   texture.children[0].material.map.needsUpdate = true;
 }
 
-function updateObject(object, rotation, translation, modelSize){
-  object.scale.x = modelSize;
-  object.scale.y = modelSize;
-  object.scale.z = modelSize;
+function updateObject(model, rotation, translation, modelSize){
+  const object = model.three.model;
+  object.scale.x = model.scaling;
+  object.scale.y = model.scaling;
+  object.scale.z = model.scaling;
 
-  object.rotation.x = -Math.asin(-rotation[1][2]);
-  object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
-  object.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]);
+  object.rotation.x = -Math.asin(-rotation[1][2]) + model.rotate.x;
+  object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]) + model.rotate.y;
+  object.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]) + model.rotate.z;
 
   object.position.x = translation[0];
   object.position.y = translation[1];
@@ -271,7 +279,9 @@ function createCustomModel(model, canvas) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(40, canvas.width / canvas.height, 1, 1000);
+  const light = new THREE.AmbientLight( 0xBDBDBD );
   scene.add(camera);
+  scene.add(light);
   scene.add(model);
 
   return { scene, camera, model };

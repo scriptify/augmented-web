@@ -13,7 +13,7 @@ export async function getVideo(deviceId) {
   if(!navigator.mediaDevices)
     throw getError();
 
-  return navigator.mediaDevices.getUserMedia({ video: { optional: [{ sourceId: deviceId }] }, audio: false })
+  return navigator.mediaDevices.getUserMedia({ video: { optional: [{ sourceId: deviceId }] }, audio: false });
 }
 
 export function videoReady(video) {
